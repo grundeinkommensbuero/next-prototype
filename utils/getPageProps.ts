@@ -1,8 +1,8 @@
+import { DirectusImage } from './../components/Section/index';
 import { Directus, RelationItem } from '@directus/sdk';
 import { Coordinates } from '../components/CollectionMap';
 import {
   Section,
-  Layout,
   ColorScheme,
   SectionsImage,
   SectionsComponent,
@@ -55,7 +55,6 @@ type FetchedSectionData = {
     sort: null | number;
     title: string;
     label: string;
-    layout: Layout;
     colorScheme: ColorScheme;
     includeAgs?: string[];
     excludeAgs?: string[];
@@ -72,14 +71,22 @@ const sectionFields = [
   'sort',
   'title',
   'label',
-  'layout',
   'colorScheme',
   'hasHero',
   'heroTitle',
   'heroImage',
 ];
 
-type Align = 'left' | 'center' | 'right';
+export type Align = 'left' | 'center' | 'right';
+
+export type Column =
+  | 'left'
+  | 'right'
+  | 'leftThird'
+  | 'rightThird'
+  | 'centerWide'
+  | 'centerNarrow'
+  | 'centerThird';
 
 type FetchedElement = {
   collection:
@@ -94,9 +101,8 @@ type FetchedElement = {
     id: string;
     status: Status;
     sort: number;
-    overrideLayout: string | null;
     groupElement: boolean;
-    image?: string;
+    image?: DirectusImage;
     alt?: string;
     content?: string;
     component?: string;
@@ -106,6 +112,7 @@ type FetchedElement = {
     action?: string;
     href?: string;
     slug?: string;
+    column?: Column;
     align?: Align;
     title?: string;
     props?: string;
@@ -123,7 +130,9 @@ const elementFields = [
   'sort',
   'overrideLayout',
   'groupElement',
-  'image',
+  'image.id',
+  'image.width',
+  'image.height',
   'alt',
   'content',
   'component',
@@ -134,6 +143,7 @@ const elementFields = [
   'href',
   'slug',
   'align',
+  'column',
   'title',
   'state',
   'maxBounds',
@@ -166,6 +176,7 @@ const fields = [
   ...getFields('sections.', 'MANY-TO-ALL', sectionFields),
   'sections.item.elements.collection',
   ...getFields('sections.item.elements.', 'MANY-TO-ALL', elementFields),
+
   ...getFields(
     'sections.item.elements.item.questionAnswerPair.',
     'MANY-TO-MANY',
@@ -214,7 +225,6 @@ const updatePageStructure = (fetchedPage: FetchedPage): Page => {
           label: section.item.label,
           sort: section.item.sort,
           status: section.item.status,
-          layout: section.item.layout,
           colorScheme: section.item.colorScheme,
           includeAgs: section.item.includeAgs || [],
           excludeAgs: section.item.excludeAgs || [],
@@ -232,8 +242,7 @@ const updatePageStructure = (fetchedPage: FetchedPage): Page => {
                 id: element.item.id,
                 status: element.item.status,
                 sort: element.item.sort,
-                overrideLayout: element.item.overrideLayout,
-                groupElement: element.item.groupElement,
+                column: element.item.column || 'centerWide',
                 index,
               };
               switch (element.collection) {
